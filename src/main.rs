@@ -3,25 +3,16 @@
 use ntapi::{
     ntldr::LDR_DATA_TABLE_ENTRY,
     ntpebteb::{PPEB, PTEB},
-    ntpsapi::NtCreateThread,
 };
-use std::{
-    arch::asm,
-    mem::{self, size_of},
-    ptr::{self, addr_of_mut},
-    thread,
-};
-use widestring::U16String;
+use std::{arch::asm, ptr::addr_of_mut, thread};
+
 use winapi::{
     shared::minwindef::{DWORD, LPVOID},
     um::{
-        errhandlingapi::GetLastError,
-        memoryapi::VirtualProtect,
-        processthreadsapi::{CreateThread, ExitProcess},
+        processthreadsapi::ExitProcess,
         winnt::{
             IMAGE_DIRECTORY_ENTRY_IMPORT, IMAGE_DOS_SIGNATURE, IMAGE_NT_SIGNATURE,
-            PAGE_EXECUTE_READWRITE, PAGE_READONLY, PAGE_READWRITE, PIMAGE_DOS_HEADER,
-            PIMAGE_NT_HEADERS64,
+            PIMAGE_DOS_HEADER, PIMAGE_NT_HEADERS64,
         },
     },
 };
@@ -37,6 +28,7 @@ unsafe extern "system" fn on_tls_callback(h: LPVOID, dwReason: DWORD, pv: LPVOID
     {
         return;
     }
+    // this code was written for debugging and testing purposes, leaving it here since it might be useful for someone
     let base = base();
 
     let dos_header = base as PIMAGE_DOS_HEADER;
@@ -61,14 +53,6 @@ unsafe extern "system" fn on_tls_callback(h: LPVOID, dwReason: DWORD, pv: LPVOID
         (*nt_headers).OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT as usize]
             .VirtualAddress
     );
-    let mut old_protect = 0;
-    VirtualProtect(
-        base as _,
-        (*nt_headers).OptionalHeader.SizeOfHeaders as _,
-        PAGE_READWRITE,
-        addr_of_mut!(old_protect),
-    );
-    dbg!(old_protect);
 
     dbg!(entry_point, import_table);
     TLS_FLAG = true;
